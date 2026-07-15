@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企业级 AI 工单助手</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="app">
+    <header class="header">
+      <h1>企业级 AI 工单助手</h1>
+      <p>创建、搜索、更新工单，并使用 AI 生成处理建议</p>
+    </header>
+
+    <section class="panel">
+      <h2>创建工单</h2>
+
+      <div class="form-grid">
+        <input id="userName" type="text" placeholder="用户名">
+
+        <select id="priority">
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+
+        <textarea id="question" placeholder="请输入问题描述"></textarea>
+      </div>
+
+      <button onclick="createTicket()">创建工单</button>
+    </section>
+
+    <section class="panel">
+      <h2>搜索工单</h2>
+
+      <div class="search-grid">
+        <input id="searchKeyword" type="text" placeholder="搜索用户名或问题">
+
+        <select id="searchPriority">
+          <option value="">全部优先级</option>
+          <option value="low">low</option>
+          <option value="medium">medium</option>
+          <option value="high">high</option>
+        </select>
+
+        <select id="searchStatus">
+          <option value="">全部状态</option>
+          <option value="open">open</option>
+          <option value="in_progress">in_progress</option>
+          <option value="closed">closed</option>
+        </select>
+      </div>
+
+      <div class="button-row">
+        <button onclick="searchTickets()">搜索</button>
+        <button class="secondary" onclick="loadTickets()">刷新全部</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="section-title">
+        <h2>工单列表</h2>
+        <span id="ticketCount">0 条</span>
+      </div>
+
+      <div id="message" class="message"></div>
+      <div id="tickets" class="tickets"></div>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

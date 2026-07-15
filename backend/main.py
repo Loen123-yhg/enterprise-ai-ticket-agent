@@ -1,21 +1,18 @@
+import os
 import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Literal
-import os
-from openai import OpenAI
-
-ai_client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_BASE_URL"),
-)
 
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from openai import APIConnectionError, APITimeoutError, OpenAI, OpenAIError
 from pydantic import BaseModel
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "tickets.db"
-ai_client = OpenAI()
+
 
 class TicketCreate(BaseModel):
     user_name: str
@@ -34,6 +31,19 @@ def get_conn():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+
+def get_ai_client():
+    api_key = os.getenv("OPENAI_API_KEY")
+    base_url = os.getenv("OPENAI_BASE_URL")
+
+    if not api_key:
+        raise HTTPException(
+            status_code=500,
+            detail="Missing OPENAI_API_KEY environment variable",
+        )
+
+    return OpenAI(api_key=api_key, base_url=base_url or None)
 
 
 def init_db():
@@ -58,6 +68,13 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
@@ -186,6 +203,8 @@ def update_ticket(ticket_id: int, update: TicketUpdate):
         ).fetchone()
 
     return dict(row)
+
+
 @app.post("/tickets/{ticket_id}/ai-analysis")
 def analyze_ticket(ticket_id: int):
     with get_conn() as conn:
@@ -202,7 +221,6 @@ def analyze_ticket(ticket_id: int):
         raise HTTPException(status_code=404, detail="Ticket not found")
 
     ticket = dict(row)
-
     prompt = f"""
 你是企业 IT 工单助手。
 
@@ -219,14 +237,22 @@ def analyze_ticket(ticket_id: int):
 当前状态：{ticket["status"]}
 """
 
-    response = ai_client.responses.create(
-        model="gpt-5.5",
-        input=prompt,
-    )
+    try:
+        client = get_ai_client()
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            messages=[{"role": "user", "content": prompt}],
+        )
+    except APITimeoutError:
+        raise HTTPException(status_code=504, detail="AI request timed out")
+    except APIConnectionError:
+        raise HTTPException(status_code=502, detail="Cannot connect to AI API")
+    except OpenAIError as exc:
+        raise HTTPException(status_code=502, detail=str(exc))
 
     return {
         "ticket": ticket,
-        "ai_analysis": response.output_text,
+        "ai_analysis": response.choices[0].message.content,
     }
 
 

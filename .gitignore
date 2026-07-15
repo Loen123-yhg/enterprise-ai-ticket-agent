@@ -5,6 +5,7 @@ __pycache__/
 # Python virtual environment
 .venv/
 venv/
+.idea/
 
 # Environment variables
 .env
@@ -24,6 +25,16 @@ out/
 
 # Logs
 *.log
+
+# Local documents and generated artifacts
+*.docx
+*.pdf
+*.lnk
+render_*/
+build_resume_*.py
+add_resume_*.py
+update_resume_*.py
+liujianing_*.docx
 
 # OS files
 .DS_Store
